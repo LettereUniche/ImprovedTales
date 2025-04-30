@@ -18,18 +18,6 @@ namespace ImprovedSignalVoid
     internal class CustomSettings : JsonModSettings
     {
 
-        [Section("Handheld Shortwave Settings")]
-
-        [Name("Handheld Shortwave Location")]
-        [Description("Choose the starting location of the Tale. The region here will determine where the Handheld Shortwave will spawn and where the Tale will start.")]
-        [Choice("Forsaken Airfield", "Pleasant Valley", "Desolation Point", "Mystery Lake", "Blackrock", "Random")]
-        public int shortwaveRegion = 5;
-
-        [Name("Default Shortwave Location")]
-        [Description("Choose whether the Handheld Shortwave will be available in it's default location if you chose random.")]
-        [Choice("Yes", "No")]
-        public bool airfieldRegionAvailable = false;
-
         [Section("Tale Settings")]
 
         [Name("Journal Missions")]
@@ -42,19 +30,7 @@ namespace ImprovedSignalVoid
         [Choice("Disabled", "Enabled")]
         public bool enabledMissionPopups = true;
 
-        protected override void OnChange(FieldInfo field, object oldValue, object newValue)
-        {
-            if (field.Name == nameof(shortwaveRegion))
-            {
-                RefreshSections();
-            }
-        }
-
-        internal void RefreshSections()
-        {
-            SetFieldVisible(nameof(airfieldRegionAvailable), Settings.settings.shortwaveRegion == 5);
-        }
-
+        
     }
 
     static class Settings
@@ -64,7 +40,6 @@ namespace ImprovedSignalVoid
         {
             settings = new CustomSettings();
             settings.AddToModSettings("Improved Tales", MenuType.Both);
-            settings.RefreshSections();
         }
     }
 }

@@ -5,14 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Events;
+using UnityEngine.SceneManagement;
 using HarmonyLib;
 using System.Collections;
-using ImprovedSignalVoid.GearSpawns;
-using Il2CppTLD.Gameplay.Tunable;
 using Il2CppNodeCanvas.Tasks.Conditions;
 using Il2CppParadoxNotion.Services;
 using Main;
+using SceneManager = UnityEngine.SceneManagement.SceneManager;
+using System.Security.AccessControl;
 
 namespace ImprovedSignalVoid.Patches.Patches
 {
@@ -33,7 +33,7 @@ namespace ImprovedSignalVoid.Patches.Patches
                     return;
                 }
 
-                GameObject shortwaveFPH = rig.transform.GetChild(16).gameObject;
+                GameObject shortwaveFPH = rig.transform.GetChild(18).gameObject;
 
                 if (__instance == null || __instance.m_Gear == null) return;
 
@@ -91,25 +91,55 @@ namespace ImprovedSignalVoid.Patches.Patches
 
                 string currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
 
-                /*
-                MelonLogger.Msg("Current scene is: {0}", currentScene);
-                MelonLogger.Msg("Player Manager is {0}", __instance);
-                MelonLogger.Msg("Player Manager Gear Item is {0}", __instance.m_Gear.name);
-                */
-
                 GameObject rig = GameObject.Find("CHARACTER_FPSPlayer/NEW_FPHand_Rig/GAME_DATA/Origin/HipJoint/Chest_Joint/Camera_Weapon_Offset/Shoulder_Joint/Shoulder_Joint_Offset/Right_Shoulder_Joint_Offset/RightClavJoint/RightShoulderJoint/RightElbowJoint/RightWristJoint/RightPalm/right_prop_point");
-                GameObject shortwaveFPH = rig.transform.GetChild(16).gameObject;
+                GameObject shortwaveFPH = rig.transform.GetChild(18).gameObject;
 
                 if (__instance.m_Gear == null) return;
 
                 if (__instance.m_Gear.name.Contains("GEAR_SignalVoid"))
                 {
+
+                    DisableShortwaveInScene();
+
                     //wait 5 seconds
                     MelonCoroutines.Start(DisableShortwaveFPH(shortwaveFPH));
                 }
             }
 
-            //unsure
+            private static void DisableShortwaveInScene()
+            {
+
+                Scene mainScene = SceneManager.GetSceneByName(GameManager.m_ActiveScene);
+                GameObject[] rootObjects = mainScene.GetRootGameObjects();
+                foreach (var root in rootObjects)
+                {
+                    GameObject result = FindInHierarchy(root, "GEAR_HandheldShortwave");
+                    if (result != null)
+                    {
+                        result.SetActive(false);
+                    }
+                }
+            }
+
+            private static GameObject FindInHierarchy(GameObject parent, string targetName)
+            {
+                if (parent.name == targetName)
+                    return parent;
+
+                var parentTransform = parent.transform;
+                int childCount = parentTransform.childCount;
+
+                for (int i = 0; i < childCount; i++)
+                {
+                    var child = parentTransform.GetChild(i).gameObject;
+                    var found = FindInHierarchy(child, targetName);
+                    if (found != null)
+                        return found;
+                }
+
+                return null;
+            }
+
             private static IEnumerator DisableShortwaveFPH(GameObject shortwaveFPH)
             {
 
@@ -123,45 +153,11 @@ namespace ImprovedSignalVoid.Patches.Patches
 
         }
 
-
-        [HarmonyPatch(typeof(GameManager), nameof(GameManager.Update))]
-
-        internal class ShortwaveInSceneManager
-        {
-
-            private static void Postfix()
-            {
-
-                SaveDataManager sdm = Implementation.sdm;
-                if (sdm.HasPickedUpShortwave()) return;
-
-                //Removes collider from object so only the collectible can be interacted with
-                GameObject shortwaveActual = GameObject.Find("GEAR_HandheldShortwave");
-
-                if (shortwaveActual == null) return;
-
-                //If the shortwave is a Gear Item in DDOL. Get out of here
-                if (shortwaveActual.transform.parent != null) return;
-
-                BoxCollider bc = shortwaveActual.GetComponent<BoxCollider>();
-                if (bc) Destroy(bc);
-
-                //remove the shortwave from the scene after picking it up
-                Inventory inv = GameManager.GetInventoryComponent();
-                if (inv.GetBestGearItemWithName("GEAR_HandheldShortwave"))
-                {
-                   sdm.Save("true", "hasPickedUpShortwave");
-                   shortwaveActual.SetActive(false);
-                }
-            }
-        }
-
         [HarmonyPatch(typeof(QualitySettingsManager), nameof(QualitySettingsManager.ApplyCurrentQualitySettings))]
 
+        //Disables the vanilla item spawns for the Shortwave Radio if the player already has it in the inventory
         internal class ShortwaveInAirfieldSceneManager
         {
-
-
             private static void Postfix()
             {
 
@@ -171,9 +167,6 @@ namespace ImprovedSignalVoid.Patches.Patches
                 {
                     return;
                 }
-
-                SaveDataManager sdm = Implementation.sdm;
-                string taleScene = sdm.LoadTaleStartRegion("startRegion");
 
                 for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCount; i++)
                 {
@@ -217,7 +210,7 @@ namespace ImprovedSignalVoid.Patches.Patches
 
                             if (tales != null)
                             {
-                                if (!scene.name.Contains(taleScene))
+                                if (UserHasShortwave())
                                 {
                                     tales.transform.GetChild(0).gameObject.SetActive(false);
                                 }
@@ -232,5 +225,8 @@ namespace ImprovedSignalVoid.Patches.Patches
                 }
             }
         }
+
+        public static bool UserHasShortwave() => GameManager.GetInventoryComponent().GetBestGearItemWithName("GEAR_HandheldShortwave") != null ? true : false;
+      
     }
 }

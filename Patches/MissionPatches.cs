@@ -11,7 +11,6 @@ using ModSettings;
 using UnityEngine;
 using Il2CppParadoxNotion.Services;
 using Il2CppNodeCanvas.Tasks.Conditions;
-using ImprovedSignalVoid.GearSpawns;
 using static Il2Cpp.Panel_Log;
 
 namespace ImprovedSignalVoid.Patches.Patches
